@@ -1,0 +1,47 @@
+﻿/* Add your custom CSS here */
+.table-hover tbody tr:hover {
+    cursor:pointer;
+}
+
+
+/*adjust the alignment of the texts
+    -make it align to the right*/
+.textRightalign{
+    text-align:right;
+}
+
+/*adjust the alignment of the texts
+    -make it align to the center*/
+.textCenteralign {
+    text-align: center;
+}
+
+/*decrease the font size so the location names 
+    can display on one line.
+*/
+.tableNamefontSize{
+    font-size: 13.8px;
+}
+
+/*turn the mouse into pointer 
+    inside the table row.
+*/
+tbody tr{
+    cursor: pointer;
+}
+
+svg{
+    background-color: white;    
+}
+
+
+.batTooltipStyle {
+    padding: .15rem;
+    position: absolute;
+    text-align: center;
+    background: #DDA0DD;
+    color: #313639;
+    border: 1px solid #313639;
+    border-radius: 6px;
+}
+

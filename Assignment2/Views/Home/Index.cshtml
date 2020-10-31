@@ -1,0 +1,573 @@
+﻿@{ ViewBag.Title = "South Australia Reservoir Volumes"; }
+
+@section styles {
+    <style>
+        /* Place temporary CSS here them move to Site.css when happy =) */
+    </style>
+}
+
+
+<!-- Do NOT change this html.  All work must be done via the script element -->
+<div class="row">
+    <div class="col-5">
+        <div class="border rounded border-info p-1" id="reservoirList">
+            <h3 class="text-center">Reservoir List</h3>
+        </div>
+    </div>
+    <div class="col-7" id="graphs">
+    </div>
+</div>
+
+
+@section scripts {
+
+    @* load the d3.js javaScript *@
+    <script src="~/Scripts/d3/d3.js"></script>
+
+    <script>
+
+        //alert('the page has refresh');
+
+        // create the initial texts for the card section
+        // when the page load.
+        var noCardtext = $('<h7>')
+            .appendTo('#graphs')
+            .append('Select a Reservoir to view...');
+
+        // create a table element
+        var theTable = $('<table>')
+            .appendTo('#reservoirList')
+            .addClass('table table-striped');
+
+        var tableHeading = $('<thead>')
+            .appendTo(theTable);
+
+        var tableSubheading = $('<tr>')
+            .appendTo(tableHeading);
+
+        // append the sub-headings to the <th> elements
+        $('<th>')
+            .appendTo(tableSubheading)
+            .append('Name')
+            .addClass('textCenteralign');
+
+        $('<th>')
+            .appendTo(tableSubheading)
+            .append('Capacity(ML)');
+
+        // create and attach <tbody> to the table element
+        var tableBody = $('thead').after('<tbody>');
+
+        // make the ajax call to get the table data
+        var tableData = $.ajax({
+
+            url: '/api/Reservoirs',
+            method: 'GET',
+            dataType: 'json',
+            data: null,
+            timeout: 10000
+
+        });
+
+
+        tableData.done(function (data) {
+
+            // for each jason object in the array(from the
+            // Ajax call)
+            $.each(data, function (i, obj) {
+
+                // construct the title texts
+                var theFromyear = String(obj.dateRange.from).substring(0, 4);
+                var theToyear = String(obj.dateRange.to).substring(0, 4);
+                var recordNumber = '[' + obj.records + 'records]';
+
+                var tableTitle = 'Click to view ' + obj.reservoirDetail.reservoirName
+                    + ' capacity data from ' + theFromyear +
+                    ' to ' + theToyear + ' ' + recordNumber;
+
+
+                // create a <tr> for each element object.
+                // append the title to the <tr> element.
+                var theDatarow = $('<tr>')
+                    .appendTo('tbody')
+                    .attr('title', tableTitle)
+                    .on('mouseover', function () {
+
+                        // this is where I get the table row
+                        // background color.
+                        originColor = $(this)
+                            .css('background-color');
+
+                        $(this).css('background-color', 'lightskyblue')
+                            .on('mouseout', function () {
+
+                                $(this)
+                                    .css('background-color', originColor);
+                            });
+                    })
+                    .on('click', function () {
+
+                        //------double click to remove the highlight---------
+
+                        //$(this)
+                        //    .css('background-color', 'deepskyblue')
+                        //    .off('mouseout')
+                        //    .on('dblclick', function () {
+
+                        //        $(this)
+                        //            .css('background-color', originColor);
+                        //    });
+
+                        //--------------------------------------------------
+
+                        // insert the location data as an attribute
+                        // to the graphy tags.
+                        $('#graphs')
+                            .attr('location', obj.reservoirDetail.reservoirName);
+
+
+                        // empty the no card text on the right
+                        // and remove from the DOM tree.
+                        noCardtext.html('').remove();
+
+                        let selectedRecord = obj.reservoirDetail.reservoirID;
+
+
+                        // call the create call function
+                        // to construct the cards on the
+                        // right.
+                        createCards(selectedRecord);
+
+                    });
+
+
+                // retrive and display the location names
+                $('<td>')
+                    .appendTo(theDatarow)
+                    .append(obj.reservoirDetail.reservoirName)
+                    .addClass('tableNamefontSize');
+
+                $('<td>')
+                    .appendTo(theDatarow)
+                    .append(obj.reservoirDetail.capacityML.toLocaleString())
+                    .addClass('textRightalign');
+
+
+                // these 2 statements will create the buttons to the
+                // table.
+                var tableButtons = $('<td>')
+                    .appendTo(theDatarow)
+                    .attr('width', '30%');
+
+                // construct the hyber-link
+                var theLink = 'https://www.google.com/maps/place/'
+                    + obj.reservoirDetail.reservoirName;
+
+                // attach the link to the <href> element
+                // and attach the hyber-link to the button.
+                var theLink = $('<a>')
+                    .appendTo(tableButtons)
+                    .attr('href', theLink)
+                    .attr('target', '_blank')
+                    .addClass('btn')
+                    .addClass('btn-outline-info')
+                    .append('View Map');
+
+            });
+
+
+        });
+
+
+        tableData.fail(function () {
+            alert('Failed to load Reservoir Data.');
+        });
+
+
+
+        // code in this function will create cards on the
+        // right-handside of the page.
+        function createCards(reservoirID) {
+
+            // make the ajax call to get the data
+            var createCards = $.ajax({
+
+                url: '/api/Reservoirs/' + reservoirID,
+                method: 'GET',
+                dataType: 'json',
+                data: null,
+                timeout: 10000
+
+            });
+
+
+            // if the call is successful, the program will
+            // run this function.
+            createCards.done(function (data) {
+
+                // empty the cards first before
+                // loading the new data
+                var cards = $('#graphs')
+                    .html('');
+
+
+                $.each(data, function (i, obj) {
+
+                    // create a card <div>
+                    var card = $('<div>')
+                        .addClass('card w-100 border-warning mb-3')
+                        .on('mouseover', function () {
+
+                            // change the background color when the
+                            // mouse hover
+                            $(this)
+                                .css('background-color', 'palegreen')
+                                .css('cursor', 'pointer');
+
+                            // add a title to the card
+                            $(this)
+                                .attr('title', 'Click to view volume details.')
+                        })
+                        .on('mouseout', function () {
+
+                            $(this)
+                                .css('background-color', 'white');
+                        })
+                        .appendTo(cards);
+
+
+                    // create a card body element and
+                    // attach to the <card>
+                    let cardBody = $('<div>')
+                        .addClass('card-body')
+                        .on('click', function () {
+
+                            // turn off the mouseout and mouseover
+                            // functions and remove the title attribute.
+                            $(this)
+                                .parent()
+                                .css('background-color', 'palegreen')
+                                .off('mouseout')
+                                .off('mouseover')
+                                .removeAttr('title');
+
+                            // add the heigh to the current selected card
+                            card
+                                .addClass('h-100');
+
+                            // remove the all the heigh classes from the
+                            // sibiling classes.
+                            $(this)
+                                .parent()
+                                .siblings()
+                                .removeClass('h-100')
+                                .css('background-color', 'white');
+
+                            // after clicking on a record, all of its sibiling
+                            // records should be reattached all of the mouseover 
+                            // and mouseout functions
+                            $('.card.w-100.border-warning.mb-3.h-100')
+                                .siblings()
+                                .on('mouseover', function () {
+
+                                    $(this).attr('title', 'Click to view volume details.');
+
+                                    $(this).css('background-color', 'palegreen');
+                                })
+                                .on('mouseout', function () {
+
+                                    $(this).css('background-color', 'white');
+                                });
+                              
+                            d3.select(this).append('svg');
+
+                            if ($('svg').length > 1) {
+
+                                $('svg').remove();
+                               
+                                d3.select(this).append('svg');
+                            }
+                           
+                            createGraphy(obj.year, reservoirID);
+
+                        })
+                        .appendTo(card);
+
+
+                    // construct the card title text and
+                    // append to the card title.
+                    let cardTitletext = obj.year;
+
+                    $('<h5>')
+                        .addClass('card-title')
+                        .append(cardTitletext)
+                        .appendTo(cardBody);
+
+                    // construct the card record text and
+                    // append to the card.
+                    let cardRecords = 'Records: ' + obj.records +
+                        ' dating from ' + obj.firstMonthName +
+                        ' to ' + obj.lastMonthName;
+
+                    $('<p>')
+                        .addClass('card-text').append(cardRecords)
+                        .appendTo(cardBody);
+
+                    // toFixed(3)
+
+                    let averageVolume = 'Avg Volume: ' +
+                        obj.avgVolume.toLocaleString() +
+                        ' ML';
+
+                    $('<p>')
+                        .addClass('card-text')
+                        .append(averageVolume)
+                        .appendTo(cardBody);
+
+                });
+
+            });
+
+
+            createCards.fail(function () {
+
+                alert('Failed to load Reservoir Card Data.');
+            });
+
+        }
+
+
+        function createGraphy(year, rID) {
+
+
+            var drawGraphy = $.ajax({
+
+                url: '/api/Reservoirs/' + rID + '?year=' + year,
+                method: 'GET',
+                dataType: 'json',
+                data: null,
+                timeout: 10000
+            });
+
+
+            drawGraphy.done(function (data) {
+
+                var margin = { left: 80, right: 30, top: 40, bottom: 80 };
+
+
+                var svg = d3.select('svg')
+                    .attr('width', '100%')
+                    .attr('height', '85%')
+
+
+                var svgHeight = $('svg').height(); // 588
+                var svgWidth = $('svg').width();   // 593
+                //console.log(svgHeight);
+                //console.log(svgWidth);
+
+
+                var locationName = $('#graphs')
+                    .attr('location');
+
+                // title text for the graphical area.
+                d3.select('svg')
+                    .append('text')
+                    .attr("x", svgWidth / 2)
+                    .attr("y", 40)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "19px")
+                    .style('font-weight', 'bold')
+                    .text(locationName + ' in ' + year);
+
+
+                var canvas = svg.append('g')
+                    .attr('transform',
+                        'translate(' +
+                        margin.left + ',' + margin.bottom + ')');
+
+                // the innerheight/innerwidth are the actual graphical
+                // areas.
+                var innerHeight = svgHeight - (margin.top + margin.bottom);
+                var innerWidth = svgWidth - (margin.left + margin.right);
+
+
+                // get the maximum avgVolume from the Jason file
+                var maxAvgvolume = d3.max(data, function (d) {
+
+                    return d.avgVolume;
+                })
+
+
+                // calculate the scaling to fit into the graphy
+                // area.
+                var xScarling = d3.scaleLinear()
+                    .domain([0, maxAvgvolume])
+                    .range([0, innerWidth]);
+
+                var yScarling = d3.scaleBand()
+                    .domain(data.map(function (d) {
+                        
+                        return d.dayNo + ' ' +
+                            d.monthName.substring(0, 3);
+
+                    }))
+                    .range([0, innerHeight])
+                    .padding(0.1);
+
+                // create the x-axis and y-axis.
+                var yAxis = d3
+                    .axisLeft(yScarling);
+                
+
+                var xAxis = d3
+                    .axisBottom(xScarling)
+                    .tickValues([0]);
+
+                // append both axises to the graphical
+                // area.
+                canvas
+                    .append('g')
+                    .call(yAxis)
+                    .style('font-size', '12px');
+
+                canvas
+                    .append('g')
+                    .call(xAxis)
+                    .attr('transform',
+                        'translate(0,' + innerHeight + ')');
+
+                // create and append both x/y axis labels to the
+                // graphical area
+                canvas.append('text')
+                    .text('Month')
+                    .attr('x', -65)
+                    .attr('y', 0)
+
+                canvas.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('x', svgWidth / 2 - 50)
+                    .attr('y', innerHeight + 25)
+                    .text('Reservoir Volume (ML)');
+
+
+                // group both the bar and the texts into a same group
+                var barGroup = canvas
+                    .selectAll('g.bar')
+                    .data(data)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'bar')
+
+
+                function toolTipforbars() {
+
+                    // generate a tooltip div for the bars.
+                    // create a globale variable so it can be
+                    // used in the later functions.
+                    barTooltip = d3
+                        .select('body')
+                        .append('div')
+                        .style('opacity', 0)
+                        .attr('class', 'batTooltipStyle');
+                };
+
+                // remove the old tooltip for bas and
+                // append a new one, in case the users
+                // want to click on the other cards.
+                $('.batTooltipStyle').remove();
+                toolTipforbars();
+
+                // code from here will construct and define the bars
+                // and texts behaviours.
+                barGroup
+                    .append('rect')
+                    .attr('width', function (d) {
+
+                        return xScarling(d.avgVolume) * 0.1;
+
+                    })
+                    .attr('height', yScarling.bandwidth() / 2)
+                    .attr('y', function (d) {
+                        
+                        return yScarling(d.dayNo + ' ' +
+                            d.monthName.substring(0, 3)) + 15;
+                         
+                    })
+                    .attr('fill', 'coral')
+                    .on('mouseover', function (d) {
+
+                        barTooltip
+                            .transition()
+                            .duration(50)
+                            .style('opacity', 1);
+
+
+                        let barMessage = d.avgVolume
+                            + ' ML on '
+                            + String(d.recordDate).substring(8, 10)
+                            + ' ' + d.monthName + ' of ' + d.year;
+
+                        // position of the tooltip
+                        // for the bars.
+                        barTooltip
+                            .html(barMessage)
+                            .style('left', (d3.event.pageX + 5) + 'px')
+                            .style('top', (d3.event.pageY + 5) + 'px');
+
+                    })
+                    .on('mouseout', function (d) {
+
+                        // when the mouse moveout from the bars,
+                        // it will hide the tooltips.
+                        barTooltip
+                            .transition()
+                            .duration(50)
+                            .style('opacity', 0);
+
+                    })
+                    .transition()
+                    .duration(5000)
+                    .attr('width', function (d) {
+
+                        return xScarling(d.avgVolume);
+                    });
+
+
+
+                barGroup
+                    .append('text')
+                    .text(function (d) {
+
+                        return d.avgVolume.toLocaleString();
+
+                    })
+                    .attr('y', function (d) {
+                      
+                        return yScarling(d.dayNo + ' ' +
+                            d.monthName.substring(0, 3)) + 34;
+                    })
+                    .attr('x', function (d) {
+
+                        return 0;
+                    })
+                    .transition()
+                    .duration(7000)
+                    .attr('x', function (d) {
+
+                        return xScarling(d.avgVolume) - 64;
+                    });
+
+            });
+
+
+            drawGraphy.fail(function () {
+
+                alert('the page failed to load the graphy!');
+
+            });
+
+        };
+
+    </script>
+}
+
